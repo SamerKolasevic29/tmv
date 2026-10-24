@@ -1,0 +1,11 @@
+[Unit]
+Description=Run tmv periodically
+
+[Timer]
+# Every 15 minutes. Change here (or: systemctl --user edit tmv.timer)
+OnCalendar=*:0/15
+# Catch up on a missed run (e.g. machine was off)
+Persistent=true
+
+[Install]
+WantedBy=timers.target

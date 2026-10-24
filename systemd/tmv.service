@@ -1,0 +1,8 @@
+[Unit]
+Description=tmv - sort files into folders
+
+[Service]
+Type=oneshot
+# Validate first: if the env file breaks a rule, the unit fails and nothing is moved
+ExecStartPre=%h/.local/bin/tmv -t %h/.config/tmv/tmv.env
+ExecStart=%h/.local/bin/tmv --env %h/.config/tmv/tmv.env
