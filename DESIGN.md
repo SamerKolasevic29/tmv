@@ -119,10 +119,10 @@ exit stops the unit) and the error lands in the journal.
 - [x] Design + edge cases
 - [x] `lib/presets.sh`
 - [x] `lib/sorter.sh`
-- [ ] `bin/tmv`: CLI pair parsing, `shift 2`, `--dry-run`, odd-argument check
+- [x] `bin/tmv`: CLI pair parsing, `shift 2`, `--dry-run`, odd-argument check
 - [x] `lib/validate.sh`: env parser, `tmv -t`
-- [ ] `tmv --env <file>` using the same `tmv_move_matching`
-- [ ] `systemd/` units + `install.sh`
-- [ ] `tests/run.sh`
-- [ ] README
+- [x] `tmv --env <file>` using the same `tmv_move_matching`
+- [x] `systemd/` units + `install.sh`
+- [x] `tests/run.sh`
+- [x] README
 - [ ] v2: multiple TARGET_DIR blocks, `--apply-interval`
