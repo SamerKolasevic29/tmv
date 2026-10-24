@@ -53,7 +53,7 @@ Bash 4+ (associative arrays), GNU `find`, `flock`, `readlink`, and `systemctl` (
 ## Getting started
 
 ```bash
-git clone https://github.com/<your-user>/tmv.git
+git clone https://github.com/SamerKolasevic29/tmv.git
 cd tmv
 ./install.sh
 ```
