@@ -46,14 +46,15 @@ tmv_parse_env() {
     fi
 
     case $key in
-      TARGET_DIR)
-        if [[ -n $prev ]]; then
-          err "TARGET_DIR must be the first line (multiple TARGET_DIR blocks are not supported in v1)"
-        else
-          TMV_ENV_DIR=$val
-        fi
-        ;;
-      TARGET_FILES)
+	TARGET_DIR)
+  	if [[ -n $TMV_ENV_DIR ]]; then
+    	err "multiple TARGET_DIR blocks are not supported in v1"
+  	else
+    	[[ -z $prev ]] || err "rule 1: TARGET_DIR must be the first line"
+    	TMV_ENV_DIR=$val
+  	fi
+  	;;
+           TARGET_FILES)
         if [[ -z $prev ]]; then
           err "rule 1: first line must be TARGET_DIR"
         elif [[ $prev == TARGET_FILES ]]; then
@@ -84,11 +85,12 @@ tmv_parse_env() {
 
   # end-of-file checks
   lineno=$(wc -l < "$file")
-  case $prev in
-    "")           err "env file has no content" ;;
-    TARGET_DIR)   err "no TARGET_FILES/DIR_NAME pair found" ;;
-    TARGET_FILES) err "rule 3: file must end with DIR_NAME" ;;
-  esac
+ case $prev in
+  "")           err "env file has no content" ;;
+  TARGET_FILES) err "rule 3: file must end with DIR_NAME" ;;
+  *)            ((${#TMV_ENV_SEL[@]} > 0)) || err "no TARGET_FILES/DIR_NAME pair found" ;;
+esac
+  ((${#TMV_ENV_SEL[@]} > 0)) || [[ $prev == "" ]] || err "no TARGET_FILES/DIR_NAME pair found"
 
   if [[ -n $TMV_ENV_DIR ]]; then
     [[ -d $TMV_ENV_DIR && -w $TMV_ENV_DIR ]] \

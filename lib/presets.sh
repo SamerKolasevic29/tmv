@@ -35,7 +35,7 @@ tmv_resolve_selector() {
 
   # Begins with "--" but unkwown preset -> error
   if [[ $sel == --* ]]; then
-    echo "tmv: Inavlid preset: $sel" >&2
+    echo "tmv: Unknown preset: $sel" >&2
     return 1
   fi
 

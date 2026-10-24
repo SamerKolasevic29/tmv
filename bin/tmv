@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# tmv - timer mv: sort files into folders by glob/preset
+# NOTE: no `set -e` on purpose (we handle errors per file).
+
+SELF=$(readlink -f "${BASH_SOURCE[0]}")
+TMV_LIB=${SELF%/*/*}/lib
+
+# shellcheck source=/dev/null
+source "$TMV_LIB/presets.sh" || exit 1
+source "$TMV_LIB/sorter.sh"  || exit 1
+source "$TMV_LIB/validate.sh" || exit 1
+
+DEFAULT_ENV=${TMV_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/tmv/tmv.env}
+
+usage() {
+  cat <<'EOF'
+Usage:
+  tmv [options] <selector> <folder> [<selector> <folder> ...]
+  tmv [options] --env [file]      sort TARGET_DIR using an env file
+  tmv -t [file]                   validate an env file only
+
+Selectors: a preset (--video-files, --music-files, --images-files,
+           --docs-files, --archives-files) or a quoted glob ("*.mp3").
+
+Options:
+  -n, --dry-run      show what would be moved, change nothing
+      --min-age N    skip files modified in the last N minutes (default 1)
+  -t, --test [file]  validate env file (default: ~/.config/tmv/tmv.env)
+      --env [file]   run in env mode
+  -h, --help         this help
+
+Examples:
+  tmv --video-files Videos "*.docx" Word_documents
+  tmv -n --music-files Music
+EOF
+}
+
+mode=cli
+env_file=$DEFAULT_ENV
+sels=(); dests=()
+
+while (($#)); do
+  case $1 in
+    -h|--help)    usage; exit 0 ;;
+    -n|--dry-run) TMV_DRY_RUN=1; shift ;;
+    --min-age)
+      [[ ${2:-} =~ ^[0-9]+$ ]] || { echo "tmv: --min-age needs a number" >&2; exit 2; }
+      TMV_MIN_AGE=$2; shift 2 ;;
+    -t|--test|--env)
+      [[ $1 == --env ]] && mode=env || mode=test
+      shift
+      if [[ -n ${1:-} && $1 != -* ]]; then env_file=$1; shift; fi
+      ;;
+    *)
+      # everything else is a <selector> <folder> pair
+      if (($# < 2)); then
+        echo "tmv: '$1' has no target folder (odd number of arguments)." >&2
+        echo "     Did the shell expand an unquoted glob? Quote it: \"*.mp3\"" >&2
+        exit 2
+      fi
+      sels+=("$1"); dests+=("$2")
+      shift 2
+      ;;
+  esac
+done
+
+# --- validate all CLI pairs BEFORE moving anything ---
+validate_cli_pairs() {
+  local i bad=0
+  for i in "${!sels[@]}"; do
+    tmv_resolve_selector "${sels[i]}" >/dev/null || bad=1
+    tmv_valid_dirname "${dests[i]}" \
+      || { echo "tmv: invalid folder name: '${dests[i]}'" >&2; bad=1; }
+  done
+  return $bad
+}
+
+run_rules() {   # run_rules <dir>
+  local dir=$1 i n total=0 rc=0
+  for i in "${!sels[@]}"; do
+    n=$(tmv_move_matching "$dir" "${sels[i]}" "${dests[i]}") || rc=1
+    total=$((total + ${n:-0}))
+  done
+  echo "tmv: done, $total file(s) processed in $dir" >&2
+  return $rc
+}
+
+case $mode in
+  test)
+    tmv_test_env "$env_file"
+    exit $?
+    ;;
+  env)
+    ((${#sels[@]} == 0)) || { echo "tmv: --env cannot be combined with CLI pairs" >&2; exit 2; }
+    tmv_parse_env "$env_file" || exit 1
+    # prevent overlapping runs
+    exec 9>"${XDG_RUNTIME_DIR:-/tmp}/tmv.lock"
+    flock -n 9 || { echo "tmv: another run is in progress, skipping" >&2; exit 0; }
+    sels=("${TMV_ENV_SEL[@]}"); dests=("${TMV_ENV_DEST[@]}")
+    run_rules "$TMV_ENV_DIR"
+    exit $?
+    ;;
+  cli)
+    if ((${#sels[@]} == 0)); then usage >&2; exit 1; fi
+    validate_cli_pairs || exit 2
+    run_rules "$PWD"
+    exit $?
+    ;;
+esac
