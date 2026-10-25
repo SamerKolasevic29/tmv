@@ -34,7 +34,7 @@ Examples:
   tmv -n --music-files Music
 EOF
 }
-
+do_test=0
 mode=cli
 env_file=$DEFAULT_ENV
 sels=(); dests=()
@@ -46,8 +46,13 @@ while (($#)); do
     --min-age)
       [[ ${2:-} =~ ^[0-9]+$ ]] || { echo "tmv: --min-age needs a number" >&2; exit 2; }
       TMV_MIN_AGE=$2; shift 2 ;;
-    -t|--test|--env)
-      [[ $1 == --env ]] && mode=env || mode=test
+      -t|--test)
+      do_test=1
+      shift
+      if [[ -n ${1:-} && $1 != -* ]]; then env_file=$1; shift; fi
+      ;;
+    --env)
+      mode=env
       shift
       if [[ -n ${1:-} && $1 != -* ]]; then env_file=$1; shift; fi
       ;;
@@ -84,12 +89,13 @@ run_rules() {   # run_rules <dir>
   echo "tmv: done, $total file(s) processed in $dir" >&2
   return $rc
 }
+# -t: validate first; stop here unless --env was also given
+if ((do_test)); then
+  tmv_test_env "$env_file" || exit 1
+  [[ $mode == env ]] || exit 0
+fi
 
 case $mode in
-  test)
-    tmv_test_env "$env_file"
-    exit $?
-    ;;
   env)
     ((${#sels[@]} == 0)) || { echo "tmv: --env cannot be combined with CLI pairs" >&2; exit 2; }
     tmv_parse_env "$env_file" || exit 1
@@ -101,6 +107,7 @@ case $mode in
     exit $?
     ;;
   cli)
+    if ((do_test)); then exit 0; fi
     if ((${#sels[@]} == 0)); then usage >&2; exit 1; fi
     validate_cli_pairs || exit 2
     run_rules "$PWD"
