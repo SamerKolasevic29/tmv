@@ -23,6 +23,7 @@ Selectors: a preset (--video-files, --music-files, --images-files,
            --docs-files, --archives-files) or a quoted glob ("*.mp3").
 
 Options:
+  -v, --version      prints current version of tmv and type of licence
   -n, --dry-run      show what would be moved, change nothing
       --min-age N    skip files modified in the last N minutes (default 1)
   -t, --test [file]  validate env file (default: ~/.config/tmv/tmv.env)
@@ -35,12 +36,26 @@ Examples:
 EOF
 }
 do_test=0
+
+version() {
+echo -e "\033[92m  __                "
+echo  "_╱  │_  ________  __"
+echo  "╲   __╲╱     ╲  ╲╱ ╱"
+echo  " │  │ │  Y Y  ╲   ╱ "
+echo  " │__│ │__│_│  ╱╲_╱  "
+echo  "            ╲╱      "
+echo -e "\033[0mVersion \033[92m1.0.0 (stable)\033[0m"
+echo "Under MIT Licence"
+echo -e "GitHub profile: \033[92mSamerKolasevic29\033[0m"
+}
+
 mode=cli
 env_file=$DEFAULT_ENV
 sels=(); dests=()
 
 while (($#)); do
   case $1 in
+    -v|--version) version; exit 0 ;;
     -h|--help)    usage; exit 0 ;;
     -n|--dry-run) TMV_DRY_RUN=1; shift ;;
     --min-age)
